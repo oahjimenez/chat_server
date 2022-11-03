@@ -1,15 +1,18 @@
-package src;
+package chatroom;
 
 import java.net.MalformedURLException;
-import java.rmi.*;
-import java.rmi.server.*;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.server.RemoteRef;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
 import chatroom.domain.ConnectedClient;
 
 public class ChatServer extends UnicastRemoteObject implements ChatServerInterface {

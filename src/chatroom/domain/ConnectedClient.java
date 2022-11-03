@@ -2,7 +2,7 @@ package chatroom.domain;
 
 import java.util.Objects;
 
-import src.ChatClientInterface;
+import chatroom.ChatClientInterface;
 
 public class ConnectedClient {
 	public String name;
