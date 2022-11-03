@@ -3,28 +3,35 @@ package src;
 import java.net.MalformedURLException;
 import java.rmi.*;
 import java.rmi.server.*;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
+import chatroom.domain.ConnectedClient;
 
 public class ChatServer extends UnicastRemoteObject implements ChatServerInterface {
 	String line = "---------------------------------------------\n";
-	private Vector<ConnectedClient> clients;
+	private Map<String,Vector<ConnectedClient>> channelClients;
+	private Vector<ConnectedClient> allClients;
 	private static final long serialVersionUID = 1L;
 
 	public ChatServer() throws RemoteException {
 		super();
-		clients = new Vector<ConnectedClient>(10, 1);
+		allClients = new Vector<ConnectedClient>(10, 1);
+		channelClients = new LinkedHashMap<String,Vector<ConnectedClient>>();
+		channelClients.put("#general", new Vector<ConnectedClient>(10, 1));
+		channelClients.put("#off-topic", new Vector<ConnectedClient>(10, 1));
+		channelClients.put("#middleware", new Vector<ConnectedClient>(10, 1));
 	}
 
-	public String sayHello(String ClientName) throws RemoteException {
-		System.out.println(ClientName + " sent a message");
-		return "Hello " + ClientName + " from group chat server";
-	}
 
 	@Override
-	public void updateChat(String name, String nextPost) throws RemoteException {
+	public void updateChat(String name, String nextPost, String channelName) throws RemoteException {
 		String message = name + " : " + nextPost + "\n";
-		sendToAll(message);
+		sendToAll(message, channelClients.get(channelName));
 	}
 
 	@Override
@@ -54,11 +61,12 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 			ChatClientInterface nextClient = (ChatClientInterface) Naming
 					.lookup("rmi://" + details[1] + ":" + details[2] + "/" + details[3]);
 
-			clients.addElement(new ConnectedClient(details[0], nextClient));
+			allClients.addElement(new ConnectedClient(details[0], nextClient));
+			channelClients.get("#general").addElement(new ConnectedClient(details[0], nextClient));
 
 			nextClient.messageFromServer("[Server] : Hello " + details[0] + " you are now free to chat.\n");
 
-			sendToAll("[Server] : " + details[0] + " has joined the group.\n");
+			sendToAll("[Server] : " + details[0] + " has joined the chat group.\n",allClients);
 
 			updateUserList();
 		} catch (RemoteException | MalformedURLException | NotBoundException e) {
@@ -71,7 +79,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	 */
 	private void updateUserList() {
 		String[] currentUsers = getUserList();
-		for (ConnectedClient c : clients) {
+		for (ConnectedClient c : allClients) {
 			try {
 				c.getClient().updateUserList(currentUsers);
 			} catch (RemoteException e) {
@@ -81,14 +89,14 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	}
 
 	private String[] getUserList() {
-		String[] allUsers = new String[clients.size()];
+		String[] allUsers = new String[allClients.size()];
 		for (int i = 0; i < allUsers.length; i++) {
-			allUsers[i] = clients.elementAt(i).getName();
+			allUsers[i] = allClients.elementAt(i).getName();
 		}
 		return allUsers;
 	}
 
-	private void sendToAll(String newMessage) {
+	private void sendToAll(String newMessage, Vector<ConnectedClient> clients) {
 		for (ConnectedClient c : clients) {
 			try {
 				c.getClient().messageFromServer(newMessage);
@@ -102,17 +110,22 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	 * remove a client from the list, notify everyone
 	 */
 	@Override
-	public void leaveChat(String userName) throws RemoteException {
-
-		for (ConnectedClient c : clients) {
-			if (c.getName().equals(userName)) {
-				System.out.println(line + userName + " left the chat session");
-				System.out.println(new Date(System.currentTimeMillis()));
-				clients.remove(c);
-				break;
+	public void leaveChat(String userName, String channelName) throws RemoteException {
+		Vector<ConnectedClient> clients = channelClients.get(channelName);
+		if(clients!=null) {			
+			for (ConnectedClient c : clients) {
+				if (c.getName().equals(userName)) {
+					System.out.println(line + userName + " left the chat session");
+					System.out.println(new Date(System.currentTimeMillis()));
+					clients.remove(c);
+					allClients.remove(c);
+					break;
+				}
 			}
-		}
-		if (!clients.isEmpty()) {
+		}		
+
+
+		if (!allClients.isEmpty()) {
 			updateUserList();
 		}
 	}
@@ -126,8 +139,33 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	public void sendPM(int[] privateGroup, String privateMessage) throws RemoteException {
 		ConnectedClient pc;
 		for (int i : privateGroup) {
-			pc = clients.elementAt(i);
+			pc = allClients.elementAt(i);
 			pc.getClient().messageFromServer(privateMessage);
 		}
 	}
+
+	@Override
+	public List<String> getChannelsName() throws RemoteException {
+		return new ArrayList<String>(channelClients.keySet());
+	}
+
+	@Override
+	public void goToChannel(String userName,String newChannelName,String oldChannelName) throws RemoteException {
+		if (channelClients.containsKey(oldChannelName) ) {
+			channelClients.get(oldChannelName).removeIf( c -> c.getName().equals(userName));
+		}
+		
+		if (channelClients.containsKey(newChannelName) ) {
+			ConnectedClient copy = null;
+			for (ConnectedClient c : allClients) {
+				if (c.getName().equals(userName)) {
+					copy = new ConnectedClient(c);
+					break;
+				}
+			}
+			channelClients.get(newChannelName).add(copy) ;
+		}
+	}
+	
+	
 }
