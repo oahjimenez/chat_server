@@ -88,7 +88,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 
 			sendToAll("[Server] : " + details[0] + " has joined the chat group.\n",allClients);
 
-			updateUserList();
+			updateUsersListForAllClients();
 		} catch (RemoteException | MalformedURLException | NotBoundException e) {
 			e.printStackTrace();
 		}
@@ -97,8 +97,11 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	/**
 	 * Update all clients by remotely invoking their updateUserList RMI method
 	 */
-	private void updateUserList() {
-		String[] currentUsers = getUserList();
+	private void updateUsersListForAllClients() {
+		String[] currentUsers = new String[allClients.size()];
+		for (int i = 0; i < currentUsers.length; i++) {
+			currentUsers[i] = allClients.elementAt(i).getName();
+		}
 		for (ConnectedClient c : allClients) {
 			try {
 				c.getClient().updateUserList(currentUsers);
@@ -106,14 +109,6 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 				e.printStackTrace();
 			}
 		}
-	}
-
-	private String[] getUserList() {
-		String[] allUsers = new String[allClients.size()];
-		for (int i = 0; i < allUsers.length; i++) {
-			allUsers[i] = allClients.elementAt(i).getName();
-		}
-		return allUsers;
 	}
 
 	private void sendToAll(String newMessage, Vector<ConnectedClient> clients) {
@@ -146,7 +141,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 
 
 		if (!allClients.isEmpty()) {
-			updateUserList();
+			updateUsersListForAllClients();
 		}
 	}
 
