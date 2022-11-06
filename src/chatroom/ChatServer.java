@@ -14,12 +14,14 @@ import java.util.Map;
 import java.util.Vector;
 
 import chatroom.domain.ConnectedClient;
+import chatroom.domain.InfiniChannelTampon;
 
 public class ChatServer extends UnicastRemoteObject implements ChatServerInterface {
 	String line = "---------------------------------------------\n";
 	private Map<String,Vector<ConnectedClient>> channelClients;
 	private Vector<ConnectedClient> allClients;
 	private static final long serialVersionUID = 1L;
+	private InfiniChannelTampon infiniChannelTampon;
 
 	public ChatServer() throws RemoteException {
 		super();
@@ -28,13 +30,28 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		channelClients.put("#general", new Vector<ConnectedClient>(10, 1));
 		channelClients.put("#off-topic", new Vector<ConnectedClient>(10, 1));
 		channelClients.put("#middleware", new Vector<ConnectedClient>(10, 1));
+		channelClients.put("#infini", new Vector<ConnectedClient>(10, 1));
+		infiniChannelTampon= new InfiniChannelTampon();
 	}
 
 
 	@Override
 	public void updateChat(String name, String nextPost, String channelName) throws RemoteException {
 		String message = name + " : " + nextPost + "\n";
-		sendToAll(message, channelClients.get(channelName));
+		if (channelName.equals("#infini")) {
+			try {
+				int val = Integer.parseInt(nextPost);
+				infiniChannelTampon.prod(val);
+				sendToAll(message, channelClients.get(channelName));
+			} catch (NumberFormatException e) {
+				sendException(name, "Invalid fomat, you need to send a numeric value!");
+			} catch (Exception e) {
+				sendException(name, e.getMessage());
+			}
+
+		}else {		
+			sendToAll(message, channelClients.get(channelName));	
+		}
 	}
 
 	@Override
@@ -146,6 +163,19 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 			pc.getClient().messageFromServer(privateMessage);
 		}
 	}
+	
+	/**
+	 * A method to send a exception to a client
+	 */
+	@Override
+	public void sendException(String userName, String privateMessage) throws RemoteException {
+		for (ConnectedClient c : allClients) {
+			if (c.getName().equals(userName)) {
+				c.getClient().exceptionFromServer(privateMessage);
+				break;
+			}
+		}
+	}
 
 	@Override
 	public List<String> getChannelsName() throws RemoteException {
@@ -170,5 +200,9 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		}
 	}
 	
+	@Override
+	public int getLastInfiniValue() throws RemoteException{
+		return infiniChannelTampon.cons();
+	}
 	
 }
