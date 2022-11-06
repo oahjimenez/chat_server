@@ -71,26 +71,30 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	 * test message for confirmation / test connection
 	 */
 	@Override
-	public void registerListener(String[] details) throws RemoteException {
-		System.out.println(new Date(System.currentTimeMillis()));
-		System.out.println(details[0] + " has joined the chat session");
-		System.out.println(details[0] + "'s hostname : " + details[1]);
-		System.out.println(details[0] + "'s port : " + details[2]);
-		System.out.println(details[0] + "'s RMI service : " + details[3]);
-		try {
-			ChatClientInterface nextClient = (ChatClientInterface) Naming
-					.lookup("rmi://" + details[1] + ":" + details[2] + "/" + details[3]);
-
-			allClients.addElement(new ConnectedClient(details[0], nextClient));
-			channelClients.get("#general").addElement(new ConnectedClient(details[0], nextClient));
-
-			nextClient.messageFromServer("[Server] : Hello " + details[0] + " you are now free to chat.\n");
-
-			sendToAll("[Server] : " + details[0] + " has joined the chat group.\n",allClients);
-
-			updateUsersListForAllClients();
-		} catch (RemoteException | MalformedURLException | NotBoundException e) {
-			e.printStackTrace();
+	public void registerListener(String[] details) throws RemoteException,Exception {
+		if (allClients.stream().anyMatch(t -> t.getName().toLowerCase().equals(details[0].toLowerCase()))) {
+			throw new Exception("This username is already used!");
+		}else {
+			System.out.println(new Date(System.currentTimeMillis()));
+			System.out.println(details[0] + " has joined the chat session");
+			System.out.println(details[0] + "'s hostname : " + details[1]);
+			System.out.println(details[0] + "'s port : " + details[2]);
+			System.out.println(details[0] + "'s RMI service : " + details[3]);
+			try {
+				ChatClientInterface nextClient = (ChatClientInterface) Naming
+						.lookup("rmi://" + details[1] + ":" + details[2] + "/" + details[3]);
+	
+				allClients.addElement(new ConnectedClient(details[0], nextClient));
+				channelClients.get("#general").addElement(new ConnectedClient(details[0], nextClient));
+	
+				nextClient.messageFromServer("[Server] : Hello " + details[0] + " you are now free to chat.\n");
+	
+				sendToAll("[Server] : " + details[0] + " has joined the chat group.\n",allClients);
+	
+				updateUsersListForAllClients();
+			} catch (RemoteException | MalformedURLException | NotBoundException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

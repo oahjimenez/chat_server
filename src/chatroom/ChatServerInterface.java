@@ -10,7 +10,7 @@ public interface ChatServerInterface extends Remote {
 
 	public void passIDentity(RemoteRef ref) throws RemoteException;
 
-	public void registerListener(String[] details) throws RemoteException;
+	public void registerListener(String[] details) throws RemoteException,Exception;
 
 	public void leaveChat(String userName, String channelName) throws RemoteException;
 
