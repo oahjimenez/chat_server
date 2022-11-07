@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Vector;
 
 import chatroom.domain.ConnectedClient;
@@ -42,7 +43,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 			try {
 				int val = Integer.parseInt(nextPost);
 				infiniChannelTampon.prod(val);
-				sendToAll(message, channelClients.get(channelName));
+				sendForChannelToAll(message, channelName ,channelClients.get(channelName));
 			} catch (NumberFormatException e) {
 				sendException(name, "Invalid fomat, you need to send a numeric value!");
 			} catch (Exception e) {
@@ -50,7 +51,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 			}
 
 		}else {		
-			sendToAll(message, channelClients.get(channelName));	
+			sendForChannelToAll(message, channelName, channelClients.get(channelName));	
 		}
 	}
 
@@ -87,9 +88,9 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 				allClients.addElement(new ConnectedClient(details[0], nextClient));
 				channelClients.get("#general").addElement(new ConnectedClient(details[0], nextClient));
 	
-				nextClient.messageFromServer("[Server] : Hello " + details[0] + " you are now free to chat.\n");
+				//nextClient.messageFromServerToChannel("[Server] : Hello " + details[0] + " you are now free to chat.\n","#general");
 	
-				sendToAll("[Server] : " + details[0] + " has joined the chat group.\n",allClients);
+				sendForChannelToAll("[Server] : " + details[0] + " has joined the chat group.\n", "#general",allClients);
 	
 				updateUsersListForAllClients();
 			} catch (RemoteException | MalformedURLException | NotBoundException e) {
@@ -115,10 +116,10 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		}
 	}
 
-	private void sendToAll(String newMessage, Vector<ConnectedClient> clients) {
+	private void sendForChannelToAll(String newMessage, String channel, Vector<ConnectedClient> clients) {
 		for (ConnectedClient c : clients) {
 			try {
-				c.getClient().messageFromServer(newMessage);
+				c.getClient().messageFromServerToChannel(newMessage,channel);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			}
@@ -129,20 +130,14 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	 * remove a client from the list, notify everyone
 	 */
 	@Override
-	public void leaveChat(String userName, String channelName) throws RemoteException {
-		Vector<ConnectedClient> clients = channelClients.get(channelName);
-		if(clients!=null) {			
-			for (ConnectedClient c : clients) {
-				if (c.getName().equals(userName)) {
-					System.out.println(line + userName + " left the chat session");
-					System.out.println(new Date(System.currentTimeMillis()));
-					clients.remove(c);
-					allClients.remove(c);
-					break;
-				}
+	public void leaveChat(String userName) throws RemoteException {
+		for (Map.Entry<String,Vector<ConnectedClient>>  set :channelClients.entrySet()) {			
+			if(set.getValue().removeIf(c -> c.getName().equals(userName) )) {
+				System.out.println(line + userName + " left the chat session");
+				System.out.println(new Date(System.currentTimeMillis()));
 			}
-		}		
-
+	    }
+		allClients.removeIf(c -> c.getName().equals(userName) );				
 
 		if (!allClients.isEmpty()) {
 			updateUsersListForAllClients();
@@ -159,7 +154,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		ConnectedClient pc;
 		for (int i : privateGroup) {
 			pc = allClients.elementAt(i);
-			pc.getClient().messageFromServer(privateMessage);
+			pc.getClient().messageFromServerToChannel(privateMessage,"#pm");
 		}
 	}
 	
@@ -182,20 +177,11 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	}
 
 	@Override
-	public void goToChannel(String userName,String newChannelName,String oldChannelName) throws RemoteException {
-		if (channelClients.containsKey(oldChannelName) ) {
-			channelClients.get(oldChannelName).removeIf( c -> c.getName().equals(userName));
-		}
-		
-		if (channelClients.containsKey(newChannelName) ) {
-			ConnectedClient copy = null;
-			for (ConnectedClient c : allClients) {
-				if (c.getName().equals(userName)) {
-					copy = new ConnectedClient(c);
-					break;
-				}
-			}
-			channelClients.get(newChannelName).add(copy) ;
+	public void goToChannel(String userName,String channelName) throws RemoteException {
+		if (channelClients.containsKey(channelName) && 
+				!channelClients.get(channelName).stream().anyMatch(c -> c.getName().equals(userName))) {	
+				Optional<ConnectedClient> result = allClients.stream().filter(c -> c.getName().equals(userName)).findFirst();
+				result.ifPresent(c -> channelClients.get(channelName).add( new ConnectedClient(c) ) );
 		}
 	}
 	
