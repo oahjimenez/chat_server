@@ -20,4 +20,7 @@ public interface ChatServerInterface extends Remote {
 	public List<String> getChannelsName() throws RemoteException;
 	public void goToChannel(String userName,String channelName) throws RemoteException;
 	public int getLastInfiniValue() throws RemoteException;
+	public String getSpeakerUsername() throws RemoteException;
+	public void speakUp(String username) throws RemoteException;
+	public void stopSpeakUp() throws RemoteException;
 }

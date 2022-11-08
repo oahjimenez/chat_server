@@ -16,6 +16,7 @@ import java.util.Vector;
 
 import chatroom.domain.ConnectedClient;
 import chatroom.domain.InfiniChannelTampon;
+import chatroom.domain.SpeakUpChannelTampon;
 
 public class ChatServer extends UnicastRemoteObject implements ChatServerInterface {
 	String line = "---------------------------------------------\n";
@@ -23,6 +24,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	private Vector<ConnectedClient> allClients;
 	private static final long serialVersionUID = 1L;
 	private InfiniChannelTampon infiniChannelTampon;
+	private SpeakUpChannelTampon speakUpChannelTampon;
 
 	public ChatServer() throws RemoteException {
 		super();
@@ -32,7 +34,9 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		channelClients.put("#off-topic", new Vector<ConnectedClient>(10, 1));
 		channelClients.put("#middleware", new Vector<ConnectedClient>(10, 1));
 		channelClients.put("#infini", new Vector<ConnectedClient>(10, 1));
-		infiniChannelTampon= new InfiniChannelTampon();
+		channelClients.put("#speak-up", new Vector<ConnectedClient>(10, 1));
+		infiniChannelTampon = new InfiniChannelTampon();
+		speakUpChannelTampon = new SpeakUpChannelTampon();
 	}
 
 
@@ -190,4 +194,18 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		return infiniChannelTampon.cons();
 	}
 	
+	@Override
+	public String getSpeakerUsername() throws RemoteException{
+		return speakUpChannelTampon.lecteur();
+	}
+
+	@Override
+	public void speakUp(String username) throws RemoteException{
+		speakUpChannelTampon.redacteur(username);
+	}
+	
+	@Override
+	public void stopSpeakUp() throws RemoteException{
+		speakUpChannelTampon.stopSpeakUp();
+	}
 }
