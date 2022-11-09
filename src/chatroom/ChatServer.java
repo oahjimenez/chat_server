@@ -41,7 +41,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 
 
 	@Override
-	public void updateChat(String name, String nextPost, String channelName) throws RemoteException {
+	public synchronized void updateChat(String name, String nextPost, String channelName) throws RemoteException {
 		String message = name + " : " + nextPost + "\n";
 		if (channelName.equals("#infini")) {
 			try {
@@ -76,7 +76,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	 * test message for confirmation / test connection
 	 */
 	@Override
-	public void registerListener(String[] details) throws RemoteException,Exception {
+	public synchronized void registerListener(String[] details) throws RemoteException,Exception {
 		if (allClients.stream().anyMatch(t -> t.getName().toLowerCase().equals(details[0].toLowerCase()))) {
 			throw new Exception("This username is already used!");
 		}else {
@@ -134,7 +134,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	 * remove a client from the list, notify everyone
 	 */
 	@Override
-	public void leaveChat(String userName) throws RemoteException {
+	public synchronized void leaveChat(String userName) throws RemoteException {
 		for (Map.Entry<String,Vector<ConnectedClient>>  set :channelClients.entrySet()) {			
 			if(set.getValue().removeIf(c -> c.getName().equals(userName) )) {
 				System.out.println(line + userName + " left the chat session");
@@ -176,7 +176,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	}
 
 	@Override
-	public List<String> getChannelsName() throws RemoteException {
+	public  synchronized List<String> getChannelsName() throws RemoteException {
 		return new ArrayList<String>(channelClients.keySet());
 	}
 
