@@ -1,7 +1,5 @@
 package chatroom;
 
-import java.net.MalformedURLException;
-import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 
@@ -12,12 +10,9 @@ public class MainServer {
 	public static void main(String[] args) {
 		try {
 			LocateRegistry.createRegistry(COM_PORT);
-			System.out.println("RMI Server ready");
-			Naming.rebind("rmi://localhost:" + COM_PORT + "/GroupChatService", new ChatServer());
-			System.out.println("Group Chat RMI Server is running...");
+			new ChatServerGUI("rmi://localhost:" + COM_PORT + "/GroupChatService");
 		} catch (RemoteException e) {
-			e.printStackTrace();
-		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

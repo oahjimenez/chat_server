@@ -9,5 +9,5 @@ public interface ChatClientInterface extends Remote {
 	public void exceptionFromServer(String message) throws RemoteException;
 
 	public void updateUserList(String[] currentUsers) throws RemoteException;
-
+	public void serverIsClosing() throws RemoteException;
 }

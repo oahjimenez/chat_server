@@ -129,6 +129,26 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 			}
 		}
 	}
+	
+	public void sendCloseToAllChannel(String newMessage) {
+		for (Map.Entry<String,Vector<ConnectedClient>>  set :channelClients.entrySet()) {
+			for (ConnectedClient c : set.getValue()) {
+				try {
+					c.getClient().messageFromServerToChannel(newMessage,set.getKey());
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+			}
+	    }
+		for (ConnectedClient c : allClients) {
+			try {
+				c.getClient().serverIsClosing();
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
 
 	/**
 	 * remove a client from the list, notify everyone
