@@ -6,6 +6,8 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteRef;
 import java.rmi.server.UnicastRemoteObject;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -19,7 +21,9 @@ import chatroom.domain.InfiniChannelTampon;
 import chatroom.domain.SpeakUpChannelTampon;
 
 public class ChatServer extends UnicastRemoteObject implements ChatServerInterface {
-	String line = "---------------------------------------------\n";
+	public static final String LINE = "---------------------------------------------\n";
+	public static final DateTimeFormatter FULL_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss a");
+
 	private Map<String,Vector<ConnectedClient>> channelClients;
 	private Vector<ConnectedClient> allClients;
 	private static final long serialVersionUID = 1L;
@@ -42,7 +46,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 
 	@Override
 	public void updateChat(String name, String nextPost, String channelName) throws RemoteException {
-		String message = name + " : " + nextPost + "\n";
+		String message = String.format("[%s] %s : %s\n",LocalDateTime.now().format(FULL_DATE_FORMATTER),name,nextPost);
 		if (channelName.equals("#infini")) {
 			try {
 				int val = Integer.parseInt(nextPost);
@@ -63,7 +67,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	public void passIDentity(RemoteRef ref) throws RemoteException {
 		try {
 			// System.out.println("\n" + ref.remoteToString() + "\n");
-			System.out.println(line + ref.toString());
+			System.out.println(LINE + ref.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -157,7 +161,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	public void leaveChat(String userName) throws RemoteException {
 		for (Map.Entry<String,Vector<ConnectedClient>>  set :channelClients.entrySet()) {			
 			if(set.getValue().removeIf(c -> c.getName().equals(userName) )) {
-				System.out.println(line + userName + " left the chat session");
+				System.out.println(LINE + userName + " left the chat session");
 				System.out.println(new Date(System.currentTimeMillis()));
 			}
 	    }
