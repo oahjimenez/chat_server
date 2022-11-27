@@ -15,18 +15,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Vector;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import chatroom.domain.ConnectedClient;
 import chatroom.domain.InfiniChannelTampon;
 import chatroom.domain.SpeakUpChannelTampon;
 
 public class ChatServer extends UnicastRemoteObject implements ChatServerInterface {
+	
+	private static final long serialVersionUID = -727355867136017036L;
+	
 	public static final String LINE = "---------------------------------------------\n";
 	public static final DateTimeFormatter FULL_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss a");
 
+	private static final Logger log = Logger.getLogger(ChatServer.class.getName());
+	
 	private Map<String,Vector<ConnectedClient>> channelClients;
 	private Vector<ConnectedClient> allClients;
-	private static final long serialVersionUID = 1L;
 	private InfiniChannelTampon infiniChannelTampon;
 	private SpeakUpChannelTampon speakUpChannelTampon;
 
@@ -148,8 +154,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 			try {
 				c.getClient().serverIsClosing();
 			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				log.severe(e.getMessage());
 			}
 		}
 	}
@@ -210,6 +215,21 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 				!channelClients.get(channelName).stream().anyMatch(c -> c.getName().equals(userName))) {	
 				Optional<ConnectedClient> result = allClients.stream().filter(c -> c.getName().equals(userName)).findFirst();
 				result.ifPresent(c -> channelClients.get(channelName).add( new ConnectedClient(c) ) );
+		}
+	}
+	
+	@Override
+	public void subscribeToChannels(String userName,List<String> channelNames) throws RemoteException {
+		Optional<ConnectedClient> client = allClients.stream().filter(c -> c.getName().equals(userName)).findFirst();
+		if (!client.isPresent()) {
+			log.info(String.format("%s not logged in", userName));
+			return;
+		}
+		List<String> susbscribableChannels = channelNames.stream().filter(channel -> channelClients.containsKey(channel)).collect(Collectors.toList());
+		for (String channelName: susbscribableChannels) {
+			if (!channelClients.get(channelName).contains(client.get())) {
+				channelClients.get(channelName).add( new ConnectedClient(client.get()));
+			};
 		}
 	}
 	
