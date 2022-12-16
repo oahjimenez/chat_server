@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 import chatroom.domain.ConnectedClient;
 import chatroom.monitor.InfiniChannelTampon;
+import chatroom.monitor.MessageSenderMonitor;
 import chatroom.monitor.SpeakUpChannelTampon;
 
 public class ChatServer extends UnicastRemoteObject implements ChatServerInterface {
@@ -33,6 +34,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	private Vector<ConnectedClient> allClients;
 	private InfiniChannelTampon infiniChannelTampon;
 	private SpeakUpChannelTampon speakUpChannelTampon;
+	private MessageSenderMonitor messageSenderMonitor;
 
 	public ChatServer() throws RemoteException {
 		super();
@@ -45,17 +47,18 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		channelClients.put("#speak-up", new Vector<ConnectedClient>(10, 1));
 		infiniChannelTampon = new InfiniChannelTampon();
 		speakUpChannelTampon = new SpeakUpChannelTampon();
+		messageSenderMonitor = new MessageSenderMonitor();
 	}
 
 	@Override
-	public synchronized void updateChat(String incomingUsername, String nextPost, String channelName) throws RemoteException {
+	public void updateChat(String incomingUsername, String nextPost, String channelName) throws RemoteException {
 		String message = String.format("[%s] %s : %s\n", LocalDateTime.now().format(FULL_DATE_FORMATTER), incomingUsername,
 				nextPost);
 		if (channelName.equals("#infini")) {
 			try {
 				int val = Integer.parseInt(nextPost);
 				infiniChannelTampon.prod(val);
-				sendForChannelToAll(message, channelName, channelClients.get(channelName));
+				messageSenderMonitor.sendForChannelToAll(message, channelName, channelClients.get(channelName));
 			} catch (NumberFormatException e) {
 				sendException(incomingUsername, "Invalid fomat, you need to send a numeric value!");
 			} catch (Exception e) {
@@ -63,7 +66,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 			}
 
 		} else {
-			sendForChannelToAll(message, channelName, channelClients.get(channelName).stream().filter(cc -> !incomingUsername.equals(cc.getName())).collect(Collectors.toCollection(Vector::new)));
+			messageSenderMonitor.sendForChannelToAll(message, channelName, channelClients.get(channelName).stream().filter(cc -> !incomingUsername.equals(cc.getName())).collect(Collectors.toCollection(Vector::new)));
 		}
 	}
 
@@ -109,7 +112,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 
 			allClients.addElement(new ConnectedClient(details[0], nextClient));
 			channelClients.get("#general").addElement(new ConnectedClient(details[0], nextClient));
-			sendForChannelToAll("[Server] : " + details[0] + " has joined the chat group.\n", "#general", allClients);
+			messageSenderMonitor.sendForChannelToAll("[Server] : " + details[0] + " has joined the chat group.\n", "#general", allClients);
 			updateUsersListForAllClients();
 			return Boolean.TRUE;
 		} catch (Exception e) {
@@ -129,16 +132,6 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		for (ConnectedClient c : allClients) {
 			try {
 				c.getClient().updateUserList(currentUsers);
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	private void sendForChannelToAll(String newMessage, String channel, Vector<ConnectedClient> clients) {
-		for (ConnectedClient c : clients) {
-			try {
-				c.getClient().messageFromServerToChannel(newMessage, channel);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			}
