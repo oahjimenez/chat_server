@@ -1,9 +1,15 @@
-package chatroom.domain;
+package chatroom.monitor;
 
+/**
+ * InfiniChannelTampon
+ * Producer-Consumer Monitor
+ * 
+ */
 public class InfiniChannelTampon {
-	private volatile Integer val=0;
-	private volatile boolean isWriting=false,isReading=false;
-	boolean start = true,tamponClosed=false;
+	private volatile Integer val;
+	private volatile boolean isWriting;
+	private volatile boolean isReading;
+	private boolean tamponClosed;
 	
 	public static final String TAMPON_CLOSED_EXCEPTION = "The buffer has been closed";
 	

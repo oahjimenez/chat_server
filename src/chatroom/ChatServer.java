@@ -19,8 +19,8 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import chatroom.domain.ConnectedClient;
-import chatroom.domain.InfiniChannelTampon;
-import chatroom.domain.SpeakUpChannelTampon;
+import chatroom.monitor.InfiniChannelTampon;
+import chatroom.monitor.SpeakUpChannelTampon;
 
 public class ChatServer extends UnicastRemoteObject implements ChatServerInterface {
 	

@@ -1,8 +1,13 @@
-package chatroom.domain;
+package chatroom.monitor;
 
+/**
+ * SpeakUpChannelTampon
+ * Producer-Consumer Monitor
+ * 
+ */
 public class SpeakUpChannelTampon {
-	private volatile String username=null;
-	boolean start = true,tamponClosed=false;
+	
+	private volatile String username;
 	public static final String TAMPON_CLOSED_EXCEPTION = "The buffer has been closed";
 	
 	public synchronized void redacteur(String user) {
@@ -25,9 +30,4 @@ public class SpeakUpChannelTampon {
 	public synchronized String lecteur() {
 		return username;
 	}
-	
-	synchronized void terminate() {
-		tamponClosed = true;
-		notify();
-	}			
 }
