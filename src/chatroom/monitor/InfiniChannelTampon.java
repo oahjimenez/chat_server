@@ -6,7 +6,7 @@ package chatroom.monitor;
  * 
  */
 public class InfiniChannelTampon {
-	private volatile Integer val;
+	private volatile int val = 0;
 	private volatile boolean isWriting;
 	private volatile boolean isReading;
 	private boolean tamponClosed;

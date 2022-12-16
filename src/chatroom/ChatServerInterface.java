@@ -12,8 +12,10 @@ public interface ChatServerInterface extends Remote {
 
 	public void passIDentity(RemoteRef ref) throws RemoteException;
 
-	public void registerListener(String[] details) throws RemoteException, Exception;
+	public boolean registerListener(String[] details) throws RemoteException;
 	
+	public boolean isUsernameAvailable(String username) throws RemoteException;
+
 
 	public void updateChat(String userName, String chatMessage, String channelName) throws RemoteException;
 

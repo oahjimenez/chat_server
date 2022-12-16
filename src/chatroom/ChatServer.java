@@ -1,8 +1,6 @@
 package chatroom;
 
-import java.net.MalformedURLException;
 import java.rmi.Naming;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteRef;
 import java.rmi.server.UnicastRemoteObject;
@@ -23,15 +21,15 @@ import chatroom.monitor.InfiniChannelTampon;
 import chatroom.monitor.SpeakUpChannelTampon;
 
 public class ChatServer extends UnicastRemoteObject implements ChatServerInterface {
-	
+
 	private static final long serialVersionUID = -727355867136017036L;
-	
+
 	public static final String LINE = "---------------------------------------------\n";
 	public static final DateTimeFormatter FULL_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss a");
 
 	private static final Logger log = Logger.getLogger(ChatServer.class.getName());
-	
-	private Map<String,Vector<ConnectedClient>> channelClients;
+
+	private Map<String, Vector<ConnectedClient>> channelClients;
 	private Vector<ConnectedClient> allClients;
 	private InfiniChannelTampon infiniChannelTampon;
 	private SpeakUpChannelTampon speakUpChannelTampon;
@@ -39,7 +37,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	public ChatServer() throws RemoteException {
 		super();
 		allClients = new Vector<ConnectedClient>(10, 1);
-		channelClients = new LinkedHashMap<String,Vector<ConnectedClient>>();
+		channelClients = new LinkedHashMap<String, Vector<ConnectedClient>>();
 		channelClients.put("#general", new Vector<ConnectedClient>(10, 1));
 		channelClients.put("#off-topic", new Vector<ConnectedClient>(10, 1));
 		channelClients.put("#middleware", new Vector<ConnectedClient>(10, 1));
@@ -49,23 +47,23 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		speakUpChannelTampon = new SpeakUpChannelTampon();
 	}
 
-
 	@Override
 	public void updateChat(String name, String nextPost, String channelName) throws RemoteException {
-		String message = String.format("[%s] %s : %s\n",LocalDateTime.now().format(FULL_DATE_FORMATTER),name,nextPost);
+		String message = String.format("[%s] %s : %s\n", LocalDateTime.now().format(FULL_DATE_FORMATTER), name,
+				nextPost);
 		if (channelName.equals("#infini")) {
 			try {
 				int val = Integer.parseInt(nextPost);
 				infiniChannelTampon.prod(val);
-				sendForChannelToAll(message, channelName ,channelClients.get(channelName));
+				sendForChannelToAll(message, channelName, channelClients.get(channelName));
 			} catch (NumberFormatException e) {
 				sendException(name, "Invalid fomat, you need to send a numeric value!");
 			} catch (Exception e) {
 				sendException(name, e.getMessage());
 			}
 
-		}else {		
-			sendForChannelToAll(message, channelName, channelClients.get(channelName));	
+		} else {
+			sendForChannelToAll(message, channelName, channelClients.get(channelName));
 		}
 	}
 
@@ -79,6 +77,15 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		}
 	}
 
+	@Override
+	public boolean isUsernameAvailable(String username) throws RemoteException {
+		return !userAlreadyExists(username);
+	}
+	
+	private boolean userAlreadyExists(String username) {
+		return allClients.stream().anyMatch(t -> t.getName().toLowerCase().equals(username.toLowerCase()));
+	}
+	
 	/**
 	 * Receive a new client and display details to the console send on to register
 	 * method register the clients interface and store it in a reference for future
@@ -86,30 +93,28 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	 * test message for confirmation / test connection
 	 */
 	@Override
-	public void registerListener(String[] details) throws RemoteException,Exception {
-		if (allClients.stream().anyMatch(t -> t.getName().toLowerCase().equals(details[0].toLowerCase()))) {
-			throw new Exception("This username is already used!");
-		}else {
-			System.out.println(new Date(System.currentTimeMillis()));
-			System.out.println(details[0] + " has joined the chat session");
-			System.out.println(details[0] + "'s hostname : " + details[1]);
-			System.out.println(details[0] + "'s port : " + details[2]);
-			System.out.println(details[0] + "'s RMI service : " + details[3]);
-			try {
-				ChatClientInterface nextClient = (ChatClientInterface) Naming
-						.lookup("rmi://" + details[1] + ":" + details[2] + "/" + details[3]);
-	
-				allClients.addElement(new ConnectedClient(details[0], nextClient));
-				channelClients.get("#general").addElement(new ConnectedClient(details[0], nextClient));
-	
-				//nextClient.messageFromServerToChannel("[Server] : Hello " + details[0] + " you are now free to chat.\n","#general");
-	
-				sendForChannelToAll("[Server] : " + details[0] + " has joined the chat group.\n", "#general",allClients);
-	
-				updateUsersListForAllClients();
-			} catch (RemoteException | MalformedURLException | NotBoundException e) {
-				e.printStackTrace();
-			}
+	public boolean registerListener(String[] details) throws RemoteException {
+		if (userAlreadyExists(details[0])) {
+			throw new RemoteException("This username is already used!");
+		}
+		
+		log.info(new Date(System.currentTimeMillis()).toString());
+		log.info(details[0] + " has joined the chat session");
+		log.info(details[0] + "'s hostname : " + details[1]);
+		log.info(details[0] + "'s port : " + details[2]);
+		log.info(details[0] + "'s RMI service : " + details[3]);
+		try {
+			ChatClientInterface nextClient = (ChatClientInterface) Naming
+					.lookup("rmi://" + details[1] + ":" + details[2] + "/" + details[3]);
+
+			allClients.addElement(new ConnectedClient(details[0], nextClient));
+			channelClients.get("#general").addElement(new ConnectedClient(details[0], nextClient));
+			sendForChannelToAll("[Server] : " + details[0] + " has joined the chat group.\n", "#general", allClients);
+			updateUsersListForAllClients();
+			return Boolean.TRUE;
+		} catch (Exception e) {
+			log.severe(e.getMessage());
+			return Boolean.FALSE;
 		}
 	}
 
@@ -133,23 +138,23 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	private void sendForChannelToAll(String newMessage, String channel, Vector<ConnectedClient> clients) {
 		for (ConnectedClient c : clients) {
 			try {
-				c.getClient().messageFromServerToChannel(newMessage,channel);
+				c.getClient().messageFromServerToChannel(newMessage, channel);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			}
 		}
 	}
-	
+
 	public void sendCloseToAllChannel(String newMessage) {
-		for (Map.Entry<String,Vector<ConnectedClient>>  set :channelClients.entrySet()) {
+		for (Map.Entry<String, Vector<ConnectedClient>> set : channelClients.entrySet()) {
 			for (ConnectedClient c : set.getValue()) {
 				try {
-					c.getClient().messageFromServerToChannel(newMessage,set.getKey());
+					c.getClient().messageFromServerToChannel(newMessage, set.getKey());
 				} catch (RemoteException e) {
 					e.printStackTrace();
 				}
 			}
-	    }
+		}
 		for (ConnectedClient c : allClients) {
 			try {
 				c.getClient().serverIsClosing();
@@ -164,13 +169,13 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	 */
 	@Override
 	public void leaveChat(String userName) throws RemoteException {
-		for (Map.Entry<String,Vector<ConnectedClient>>  set :channelClients.entrySet()) {			
-			if(set.getValue().removeIf(c -> c.getName().equals(userName) )) {
+		for (Map.Entry<String, Vector<ConnectedClient>> set : channelClients.entrySet()) {
+			if (set.getValue().removeIf(c -> c.getName().equals(userName))) {
 				System.out.println(LINE + userName + " left the chat session");
 				System.out.println(new Date(System.currentTimeMillis()));
 			}
-	    }
-		allClients.removeIf(c -> c.getName().equals(userName) );				
+		}
+		allClients.removeIf(c -> c.getName().equals(userName));
 
 		if (!allClients.isEmpty()) {
 			updateUsersListForAllClients();
@@ -187,10 +192,10 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		ConnectedClient pc;
 		for (int i : privateGroup) {
 			pc = allClients.elementAt(i);
-			pc.getClient().messageFromServerToChannel(privateMessage,"#pm");
+			pc.getClient().messageFromServerToChannel(privateMessage, "#pm");
 		}
 	}
-	
+
 	/**
 	 * A method to send a exception to a client
 	 */
@@ -210,46 +215,49 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	}
 
 	@Override
-	public void goToChannel(String userName,String channelName) throws RemoteException {
-		if (channelClients.containsKey(channelName) && 
-				!channelClients.get(channelName).stream().anyMatch(c -> c.getName().equals(userName))) {	
-				Optional<ConnectedClient> result = allClients.stream().filter(c -> c.getName().equals(userName)).findFirst();
-				result.ifPresent(c -> channelClients.get(channelName).add( new ConnectedClient(c) ) );
+	public void goToChannel(String userName, String channelName) throws RemoteException {
+		if (channelClients.containsKey(channelName)
+				&& !channelClients.get(channelName).stream().anyMatch(c -> c.getName().equals(userName))) {
+			Optional<ConnectedClient> result = allClients.stream().filter(c -> c.getName().equals(userName))
+					.findFirst();
+			result.ifPresent(c -> channelClients.get(channelName).add(new ConnectedClient(c)));
 		}
 	}
-	
+
 	@Override
-	public void subscribeToChannels(String userName,List<String> channelNames) throws RemoteException {
+	public void subscribeToChannels(String userName, List<String> channelNames) throws RemoteException {
 		Optional<ConnectedClient> client = allClients.stream().filter(c -> c.getName().equals(userName)).findFirst();
 		if (!client.isPresent()) {
 			log.info(String.format("%s not logged in", userName));
 			return;
 		}
-		List<String> susbscribableChannels = channelNames.stream().filter(channel -> channelClients.containsKey(channel)).collect(Collectors.toList());
-		for (String channelName: susbscribableChannels) {
+		List<String> susbscribableChannels = channelNames.stream()
+				.filter(channel -> channelClients.containsKey(channel)).collect(Collectors.toList());
+		for (String channelName : susbscribableChannels) {
 			if (!channelClients.get(channelName).contains(client.get())) {
-				channelClients.get(channelName).add( new ConnectedClient(client.get()));
-			};
+				channelClients.get(channelName).add(new ConnectedClient(client.get()));
+			}
+			;
 		}
 	}
-	
+
 	@Override
-	public int getLastInfiniValue() throws RemoteException{
+	public int getLastInfiniValue() throws RemoteException {
 		return infiniChannelTampon.cons();
 	}
-	
+
 	@Override
-	public String getSpeakerUsername() throws RemoteException{
+	public String getSpeakerUsername() throws RemoteException {
 		return speakUpChannelTampon.lecteur();
 	}
 
 	@Override
-	public void speakUp(String username) throws RemoteException{
+	public void speakUp(String username) throws RemoteException {
 		speakUpChannelTampon.redacteur(username);
 	}
-	
+
 	@Override
-	public void stopSpeakUp() throws RemoteException{
+	public void stopSpeakUp() throws RemoteException {
 		speakUpChannelTampon.stopSpeakUp();
 	}
 }
