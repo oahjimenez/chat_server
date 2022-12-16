@@ -5,7 +5,7 @@ import java.util.Vector;
 
 import chatroom.domain.ConnectedClient;
 
-public class MessageSender {
+public class MessageSenderMonitor {
 	
 
 	private Map<String,Vector<ConnectedClient>> channelClients;

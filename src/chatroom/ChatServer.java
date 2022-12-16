@@ -48,8 +48,8 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	}
 
 	@Override
-	public void updateChat(String name, String nextPost, String channelName) throws RemoteException {
-		String message = String.format("[%s] %s : %s\n", LocalDateTime.now().format(FULL_DATE_FORMATTER), name,
+	public synchronized void updateChat(String incomingUsername, String nextPost, String channelName) throws RemoteException {
+		String message = String.format("[%s] %s : %s\n", LocalDateTime.now().format(FULL_DATE_FORMATTER), incomingUsername,
 				nextPost);
 		if (channelName.equals("#infini")) {
 			try {
@@ -57,13 +57,13 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 				infiniChannelTampon.prod(val);
 				sendForChannelToAll(message, channelName, channelClients.get(channelName));
 			} catch (NumberFormatException e) {
-				sendException(name, "Invalid fomat, you need to send a numeric value!");
+				sendException(incomingUsername, "Invalid fomat, you need to send a numeric value!");
 			} catch (Exception e) {
-				sendException(name, e.getMessage());
+				sendException(incomingUsername, e.getMessage());
 			}
 
 		} else {
-			sendForChannelToAll(message, channelName, channelClients.get(channelName));
+			sendForChannelToAll(message, channelName, channelClients.get(channelName).stream().filter(cc -> !incomingUsername.equals(cc.getName())).collect(Collectors.toCollection(Vector::new)));
 		}
 	}
 
