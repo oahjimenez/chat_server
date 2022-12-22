@@ -40,6 +40,5 @@ public interface ChatServerInterface extends Remote {
 	public void speakUp(String username) throws RemoteException;
 
 	public void stopSpeakUp() throws RemoteException;
-	
 
 }

@@ -4,6 +4,9 @@ import java.util.Objects;
 
 import chatroom.ChatClientInterface;
 
+/**
+ * Connected client POJO
+ */
 public class ConnectedClient {
 	public String name;
 	public ChatClientInterface client;

@@ -4,6 +4,9 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.util.logging.Logger;
 
+/**
+ * Server instantiation entry point
+ */
 public class MainServer {
 
 	public static final int COM_PORT = 1009;

@@ -1,9 +1,7 @@
 package chatroom.monitor;
 
 /**
- * SpeakUpChannelTampon
  * Producer-Consumer Monitor
- * 
  */
 public class SpeakUpChannelTampon {
 	

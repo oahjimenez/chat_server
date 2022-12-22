@@ -13,6 +13,9 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+/**
+ * Graphical user interface allowing to turn on/off the server
+ */
 public class ChatServerGUI extends JFrame implements ActionListener {
 
 	private static final long serialVersionUID = 1L;

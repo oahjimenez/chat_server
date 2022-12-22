@@ -5,6 +5,9 @@ import java.util.Vector;
 
 import chatroom.domain.ConnectedClient;
 
+/**
+ * Message Sender Monitor
+ */
 public class MessageSenderMonitor {
 	
 	public synchronized void sendForChannelToAll(String newMessage, String channel, Vector<ConnectedClient> clients) {

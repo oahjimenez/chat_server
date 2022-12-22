@@ -21,6 +21,9 @@ import chatroom.monitor.InfiniChannelTampon;
 import chatroom.monitor.MessageSenderMonitor;
 import chatroom.monitor.SpeakUpChannelTampon;
 
+/**
+ * Server implementation of remote interface
+ */
 public class ChatServer extends UnicastRemoteObject implements ChatServerInterface {
 
 	private static final long serialVersionUID = -727355867136017036L;
@@ -52,8 +55,8 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 
 	@Override
 	public void updateChat(String incomingUsername, String nextPost, String channelName) throws RemoteException {
-		String message = String.format("[%s] %s : %s\n", LocalDateTime.now().format(FULL_DATE_FORMATTER), incomingUsername,
-				nextPost);
+		String message = String.format("[%s] %s : %s\n", LocalDateTime.now().format(FULL_DATE_FORMATTER),
+				incomingUsername, nextPost);
 		if (channelName.equals("#infini")) {
 			try {
 				int val = Integer.parseInt(nextPost);
@@ -66,7 +69,9 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 			}
 
 		} else {
-			messageSenderMonitor.sendForChannelToAll(message, channelName, channelClients.get(channelName).stream().filter(cc -> !incomingUsername.equals(cc.getName())).collect(Collectors.toCollection(Vector::new)));
+			messageSenderMonitor.sendForChannelToAll(message, channelName,
+					channelClients.get(channelName).stream().filter(cc -> !incomingUsername.equals(cc.getName()))
+							.collect(Collectors.toCollection(Vector::new)));
 		}
 	}
 
@@ -84,11 +89,11 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 	public boolean isUsernameAvailable(String username) throws RemoteException {
 		return !userAlreadyExists(username);
 	}
-	
+
 	private boolean userAlreadyExists(String username) {
 		return allClients.stream().anyMatch(t -> t.getName().toLowerCase().equals(username.toLowerCase()));
 	}
-	
+
 	/**
 	 * Receive a new client and display details to the console send on to register
 	 * method register the clients interface and store it in a reference for future
@@ -100,7 +105,7 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 		if (userAlreadyExists(details[0])) {
 			throw new RemoteException("This username is already used!");
 		}
-		
+
 		log.info(new Date(System.currentTimeMillis()).toString());
 		log.info(details[0] + " has joined the chat session");
 		log.info(details[0] + "'s hostname : " + details[1]);
@@ -112,7 +117,8 @@ public class ChatServer extends UnicastRemoteObject implements ChatServerInterfa
 
 			allClients.addElement(new ConnectedClient(details[0], nextClient));
 			channelClients.get("#general").addElement(new ConnectedClient(details[0], nextClient));
-			messageSenderMonitor.sendForChannelToAll("[Server] : " + details[0] + " has joined the chat group.\n", "#general", allClients);
+			messageSenderMonitor.sendForChannelToAll("[Server] : " + details[0] + " has joined the chat group.\n",
+					"#general", allClients);
 			updateUsersListForAllClients();
 			return Boolean.TRUE;
 		} catch (Exception e) {

@@ -1,9 +1,7 @@
 package chatroom.monitor;
 
 /**
- * InfiniChannelTampon
  * Producer-Consumer Monitor
- * 
  */
 public class InfiniChannelTampon {
 	private volatile int val = 0;
